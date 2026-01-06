@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: remindy-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=sqlite+aiosqlite:///./reminders.db
+      - SCHEDULER_INTERVAL_SECONDS=10
+      - MAX_RETRY_ATTEMPTS=3
+    volumes:
+      - ./backend:/app
+      - backend_db:/app/data
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - remindy-network
+
+  frontend:
+    build:
+      context: ./frontend2
+      dockerfile: Dockerfile
+    container_name: remindy-frontend
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend2:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev
+    networks:
+      - remindy-network
+    depends_on:
+      - backend
+
+volumes:
+  backend_db:
+
+networks:
+  remindy-network:
+    driver: bridge

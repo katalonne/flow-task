@@ -13,7 +13,6 @@ class Settings(BaseSettings):
   database_url: str
   scheduler_interval_seconds: int
   max_retry_attempts: int
-  default_timezone: str
 
   vapi_api_key: str
   phone_number_id: str
