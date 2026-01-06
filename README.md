@@ -59,3 +59,44 @@
 - [x] Clear configuration + README
 - [x] Good error handling when call fails
 
+# Backend Database Schema
+
+## Reminders Table
+
+| Column | Type | Constraints | Default | Notes |
+|--------|------|-------------|---------|-------|
+| `id` | UUID (String) | Primary Key | Generated via `uuid4()` | Unique identifier for each reminder |
+| `title` | String(128) | Not Null, Indexed | - | Short reminder title |
+| `message` | Text | Not Null | - | Reminder message to be spoken |
+| `phone_number` | String(32) | Not Null | - | Phone number in E.164 format |
+| `timezone` | String(64) | Not Null | "Europe/Bucharest" | IANA timezone (e.g., Europe/London) |
+| `scheduled_time_utc` | DateTime | Not Null, Indexed | - | Scheduled time in UTC |
+| `status` | Enum | Not Null, Indexed | "scheduled" | One of: `scheduled`, `completed`, `failed` |
+| `created_at` | DateTime | Not Null | Current UTC time | Timestamp when reminder was created |
+| `updated_at` | DateTime | Not Null | Current UTC time | Timestamp when reminder was last updated |
+| `last_run_at` | DateTime | Nullable | NULL | Timestamp of last attempted call |
+| `retry_count` | Integer | Not Null | 0 | Number of retry attempts |
+| `call_sid` | String(64) | Nullable | NULL | Twilio call identifier |
+| `failure_reason` | Text | Nullable | NULL | Error description if call failed |
+
+## Indexes
+
+- **Composite Index**: `(status, scheduled_time_utc)` - Optimizes scheduler queries
+- **Single Index**: `status` - For filtering reminders by status
+- **Single Index**: `title` - For search functionality
+
+## Enums
+
+### ReminderStatus
+- `scheduled` - Reminder is waiting to be triggered
+- `completed` - Reminder call was successfully completed
+- `failed` - Reminder call failed after max retries
+
+## Validation Rules
+
+- `title`: 1-128 characters, whitespace trimmed
+- `message`: Non-empty, whitespace trimmed
+- `phone_number`: Valid E.164 format (validated via phonenumbers library)
+- `timezone`: Must be a valid IANA timezone
+- `scheduled_time_utc`: Must be a future datetime in UTC
+- `retry_count`: Incremented on each failed attempt (max: `MAX_RETRY_ATTEMPTS` from config)
