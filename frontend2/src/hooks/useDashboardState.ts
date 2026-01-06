@@ -1,9 +1,9 @@
-import { useState, useCallback } from "react";
-import { Reminder } from "../components/ReminderCard";
+import { useState } from "react";
+import { Reminder } from "../types/reminder";
 
-type TabType = "all" | "scheduled" | "completed" | "failed";
-type SortType = "default" | "asc" | "desc";
-type ModalMode = "create" | "edit";
+export type TabType = "all" | "scheduled" | "completed" | "failed";
+export type SortType = "ascending" | "descending" | "-";
+export type ModalMode = "create" | "edit";
 
 interface DashboardState {
   // Data
@@ -67,7 +67,7 @@ const initialState: DashboardState = {
   editingReminder: null,
   isQuickCreate: false,
   activeTab: "all",
-  sortOption: "default",
+  sortOption: "-",
 };
 
 export function useDashboardState(): [DashboardState, DashboardActions] {

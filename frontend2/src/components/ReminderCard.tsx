@@ -1,21 +1,15 @@
 import React from "react";
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
-import { Clock, Phone, Edit2, AlertCircle, CheckCircle, Timer } from "lucide-react";
+import { Clock, Phone, Edit2, AlertCircle, CheckCircle, Timer, Trash2 } from "lucide-react";
 import { parseISO, format } from "date-fns";
-import { ReminderData } from "./ReminderModal";
+import { Reminder } from "../types/reminder";
 import { useCountdown } from "../hooks/useCountdown";
-
-export type ReminderStatus = "scheduled" | "completed" | "failed";
-
-export interface Reminder extends ReminderData {
-  id: string;
-  status: ReminderStatus;
-}
 
 interface ReminderCardProps {
   reminder: Reminder;
   onEdit: (reminder: Reminder) => void;
+  onDelete: (reminder: Reminder) => void;
 }
 
 const STATUS_CONFIG = {
@@ -24,9 +18,12 @@ const STATUS_CONFIG = {
   failed: { label: "Failed", variant: "destructive" as const, icon: AlertCircle },
 };
 
-export function ReminderCard({ reminder, onEdit }: ReminderCardProps) {
+export function ReminderCard({ reminder, onEdit, onDelete }: ReminderCardProps) {
   const isScheduled = reminder.status === "scheduled";
-  const { timeLeft, isOverdue } = useCountdown(reminder.date, reminder.time, isScheduled);
+  const scheduledDate = parseISO(reminder.scheduled_time_utc);
+  const dateStr = format(scheduledDate, "yyyy-MM-dd");
+  const timeStr = format(scheduledDate, "HH:mm");
+  const { timeLeft, isOverdue } = useCountdown(dateStr, timeStr, isScheduled);
 
   const status = STATUS_CONFIG[reminder.status];
   const StatusIcon = status.icon;
@@ -79,17 +76,17 @@ export function ReminderCard({ reminder, onEdit }: ReminderCardProps) {
           <div className="flex items-center gap-1.5">
             <Clock className="w-4 h-4 text-accent shrink-0" />
             <span className="font-medium truncate">
-              {format(parseISO(`${reminder.date}T${reminder.time}`), "MMM d • h:mm a")}
+              {format(scheduledDate, "MMM d • h:mm a")}
             </span>
           </div>
           <div className="flex items-center gap-1.5">
             <Phone className="w-4 h-4 text-accent shrink-0" />
-            <span className="text-xs truncate">{reminder.phone}</span>
+            <span className="text-xs truncate">{reminder.phone_number}</span>
           </div>
         </div>
 
-        {isScheduled && (
-          <div className="ml-auto sm:ml-2 shrink-0">
+        <div className="ml-auto sm:ml-2 shrink-0 flex gap-1">
+          {isScheduled && (
             <Button
               variant="ghost"
               size="sm"
@@ -99,8 +96,17 @@ export function ReminderCard({ reminder, onEdit }: ReminderCardProps) {
               <Edit2 className="w-4 h-4" />
               <span className="sr-only">Edit reminder</span>
             </Button>
-          </div>
-        )}
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onDelete(reminder)}
+            className="h-8 w-8 p-0 rounded-full hover:bg-red-50 text-red-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span className="sr-only">Delete reminder</span>
+          </Button>
+        </div>
       </div>
     </div>
   );

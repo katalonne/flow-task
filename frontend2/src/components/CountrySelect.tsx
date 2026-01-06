@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/Button";
@@ -14,16 +15,46 @@ export function CountrySelect({ value, onChange, className }: CountrySelectProps
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setOpen(false);
+        if (buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
+          setOpen(false);
+        }
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Update dropdown position when button position changes
+  useEffect(() => {
+    const updatePosition = () => {
+      if (open && buttonRef.current) {
+        // Get button position relative to viewport
+        const rect = buttonRef.current.getBoundingClientRect();
+        setPosition({
+          top: rect.bottom + 4,  // 4px gap below button
+          left: rect.left,        // Align with button left edge
+          width: rect.width,
+        });
+      }
+    };
+
+    updatePosition();
+
+    if (open) {
+      window.addEventListener("scroll", updatePosition);
+      window.addEventListener("resize", updatePosition);
+      return () => {
+        window.removeEventListener("scroll", updatePosition);
+        window.removeEventListener("resize", updatePosition);
+      };
+    }
+  }, [open]);
 
   const filteredCountries = countries.filter((country) =>
     country.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -34,6 +65,7 @@ export function CountrySelect({ value, onChange, className }: CountrySelectProps
   return (
     <div className={cn("relative", className)} ref={dropdownRef}>
       <Button
+        ref={buttonRef}
         type="button"
         variant="outline"
         role="combobox"
@@ -47,9 +79,17 @@ export function CountrySelect({ value, onChange, className }: CountrySelectProps
         </span>
         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
       </Button>
-      
-      {open && (
-        <div className="absolute top-full left-0 z-50 mt-1 max-h-[300px] w-[300px] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95">
+
+      {open && createPortal(
+        <div
+          className="fixed z-50 max-h-[300px] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95"
+          style={{
+            top: `${position.top}px`,
+            left: `${position.left}px`,
+            width: "400px",
+            minWidth: `${position.width}px`,
+          }}
+        >
           <div className="flex items-center border-b px-3">
             <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
             <input
@@ -91,7 +131,8 @@ export function CountrySelect({ value, onChange, className }: CountrySelectProps
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

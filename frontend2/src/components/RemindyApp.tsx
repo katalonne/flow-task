@@ -1,11 +1,14 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Hero } from "./Hero";
 import { ReminderModal, ReminderData } from "./ReminderModal";
-import { ReminderCard, Reminder } from "./ReminderCard";
+import { ReminderCard } from "./ReminderCard";
+import { DeleteReminderDialog } from "./DeleteReminderDialog";
 import { Button } from "./ui/Button";
 import { Plus, Zap, ArrowUpDown } from "lucide-react";
-import { format, add, sub, parseISO } from "date-fns";
-import { useDashboardState } from "../hooks/useDashboardState";
+import { useDashboardState, TabType, SortType } from "../hooks/useDashboardState";
+import { Reminder, RemindersResponse } from "../types/reminder";
+import { fetchReminders, createReminder, updateReminder, deleteReminder } from "../lib/api";
 import {
   Card,
   EmptyState,
@@ -15,29 +18,6 @@ import {
   Pagination,
 } from "./design-system";
 import { Filter, AlertOctagon } from "lucide-react";
-
-// API Types
-interface ApiReminder {
-  id: string;
-  title: string;
-  message: string;
-  timezone: string;
-  scheduled_time_utc: string;
-  status: "scheduled" | "completed" | "failed";
-  time_remaining_seconds: number;
-  phone_number: string;
-  failure_reason: string | null;
-}
-
-interface ApiResponse {
-  page: number;
-  per_page: number;
-  total_items: number;
-  items: ApiReminder[];
-}
-
-type TabType = "all" | "scheduled" | "completed" | "failed";
-type SortType = "default" | "asc" | "desc";
 
 const PER_PAGE = 25;
 
@@ -50,84 +30,47 @@ const TABS: { id: TabType; label: string }[] = [
 
 export function RemindyApp() {
   const [state, actions] = useDashboardState();
+  const [deletingReminder, setDeletingReminder] = useState<Reminder | null>(null);
+  const queryClient = useQueryClient();
 
-  // Mock API Fetch
-  const fetchReminders = useCallback(
-    async (currentTab: TabType, currentPage: number) => {
-      actions.setIsLoading(true);
-      actions.setError(null);
-
-      try {
-        // Simulate network delay
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        // Mock Data Generation
-        const mockItems: ApiReminder[] = [
-          {
-            id: "6b1682e8-53bd-42ed-b872-b064d2c55daf",
-            title: "Cardiology Appointment",
-            message: "Remember to bring your ID and insurance card.",
-            timezone: "America/New_York",
-            scheduled_time_utc: add(new Date(), { days: 1 }).toISOString(),
-            status: "scheduled",
-            time_remaining_seconds: 86020,
-            phone_number: "+1 (555) 123-4567",
-            failure_reason: null,
-          },
-          {
-            id: "9bc2b46e-28c7-4233-b736-119bc5f471c8",
-            title: "Take Medication",
-            message: "Take 2 pills with water after lunch.",
-            timezone: "America/Los_Angeles",
-            scheduled_time_utc: sub(new Date(), { hours: 2 }).toISOString(),
-            status: "completed",
-            time_remaining_seconds: 0,
-            phone_number: "+1 (555) 987-6543",
-            failure_reason: null,
-          },
-        ];
-
-        // Simulate filtering on backend
-        const filteredItems =
-          currentTab === "all"
-            ? mockItems
-            : mockItems.filter((item) => item.status === currentTab);
-
-        const response: ApiResponse = {
-          page: currentPage,
-          per_page: PER_PAGE,
-          total_items: filteredItems.length,
-          items: filteredItems,
-        };
-
-        // Transform API data to UI model
-        const mappedReminders: Reminder[] = response.items.map((item) => ({
-          id: item.id,
-          title: item.title,
-          message: item.message,
-          phone: item.phone_number,
-          date: format(parseISO(item.scheduled_time_utc), "yyyy-MM-dd"),
-          time: format(parseISO(item.scheduled_time_utc), "HH:mm"),
-          timezone: item.timezone,
-          status: item.status,
-        }));
-
-        actions.setReminders(mappedReminders);
-        actions.setTotalItems(response.total_items);
-        actions.setTotalPages(Math.ceil(response.total_items / PER_PAGE) || 1);
-      } catch (err) {
-        actions.setError("Failed to load reminders. Please try again.");
-      } finally {
-        actions.setIsLoading(false);
-      }
+  // TanStack React Query for fetching reminders with 15-second polling
+  const { data, isLoading, error, isFetching } = useQuery({
+    queryKey: ["reminders", state.activeTab, state.sortOption, state.page],
+    queryFn: async () => {
+      const sortValue = state.sortOption === "-" ? undefined : state.sortOption;
+      return fetchReminders(
+        state.activeTab,
+        state.page,
+        PER_PAGE,
+        sortValue as "ascending" | "descending" | undefined
+      );
     },
-    [actions]
-  );
+    refetchInterval: 15000, // Poll every 15 seconds
+    staleTime: 0, // Always consider data stale
+  });
 
-  // Fetch when tab or page changes
+  // Update state when data changes
   useEffect(() => {
-    fetchReminders(state.activeTab, state.page);
-  }, [state.activeTab, state.page, fetchReminders]);
+    if (data) {
+      actions.setReminders(data.items);
+      actions.setTotalItems(data.total_items);
+      actions.setTotalPages(Math.ceil(data.total_items / PER_PAGE) || 1);
+    }
+  }, [data, actions]);
+
+  // Update loading and error state
+  useEffect(() => {
+    actions.setIsLoading(isLoading);
+  }, [isLoading, actions]);
+
+  useEffect(() => {
+    if (error) {
+      actions.setError("Failed to load reminders. Please try again.");
+      console.error("Error fetching reminders:", error);
+    } else {
+      actions.setError(null);
+    }
+  }, [error, actions]);
 
   const handleTabChange = (tab: TabType) => {
     actions.setActiveTab(tab);
@@ -138,40 +81,96 @@ export function RemindyApp() {
   };
 
   const handleQuickCreate = () => {
-    const now = add(new Date(), { minutes: 1 });
-    const quickCreateReminder: Reminder = {
-      id: "temp",
-      title: "",
-      message: "This is a quick reminder call.",
-      phone: "",
-      date: format(now, "yyyy-MM-dd"),
-      time: format(now, "HH:mm"),
-      timezone:
-        Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/London",
-      status: "scheduled",
-    };
     actions.openQuickCreateModal();
-    // Note: We'll need to pass this to the modal via state
   };
 
   const handleEdit = (reminder: Reminder) => {
     actions.openEditModal(reminder);
   };
 
-  const handleSave = (data: ReminderData) => {
-    // Optimistic update
-    const newReminder: Reminder = {
-      ...data,
-      id: state.editingReminder?.id || Math.random().toString(36).substr(2, 9),
-      status: "scheduled",
-    };
-
-    if (state.modalMode === "create") {
-      actions.addReminder(newReminder);
-    } else {
-      actions.updateReminder(newReminder);
-    }
+  const handleCloseModal = () => {
+    setModalError(null);
     actions.closeModal();
+  };
+
+  // State for modal errors
+  const [modalError, setModalError] = React.useState<string | null>(null);
+
+  // Mutation for creating/updating reminders
+  const saveMutation = useMutation({
+    mutationFn: async (data: ReminderData) => {
+      if (state.modalMode === "create") {
+        return createReminder({
+          title: data.title,
+          message: data.message,
+          phone: data.phone,
+          datetime: `${data.date}T${data.time}`,
+          timezone: data.timezone,
+        });
+      } else if (state.editingReminder) {
+        return updateReminder(state.editingReminder.id, {
+          title: data.title,
+          message: data.message,
+          phone: data.phone,
+          datetime: `${data.date}T${data.time}`,
+          timezone: data.timezone,
+        });
+      }
+      throw new Error("Invalid save mode");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reminders"] });
+      setModalError(null);
+      actions.closeModal();
+    },
+    onError: (error: any) => {
+      // Extract error message from API response or use default
+      let errorMessage = "Failed to save reminder. Please try again.";
+
+      if (error?.response?.data?.detail) {
+        // Handle string detail message
+        if (typeof error.response.data.detail === "string") {
+          errorMessage = error.response.data.detail;
+        }
+        // Handle array of validation errors (Pydantic format)
+        else if (Array.isArray(error.response.data.detail)) {
+          const messages = error.response.data.detail
+            .map((err: any) => err.msg || JSON.stringify(err))
+            .filter(Boolean);
+          errorMessage = messages.length > 0 ? messages[0] : errorMessage;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      setModalError(errorMessage);
+    },
+  });
+
+  // Mutation for deleting reminders
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteReminder(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reminders"] });
+      setDeletingReminder(null);
+    },
+    onError: () => {
+      actions.setError("Failed to delete reminder. Please try again.");
+    },
+  });
+
+  const handleSave = (data: ReminderData) => {
+    saveMutation.mutate(data);
+  };
+
+  const handleDeleteClick = (reminder: Reminder) => {
+    setDeletingReminder(reminder);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deletingReminder) {
+      deleteMutation.mutate(deletingReminder.id);
+    }
   };
 
   const scrollToDashboard = () => {
@@ -240,9 +239,9 @@ export function RemindyApp() {
                   }
                   disabled={state.isLoading}
                 >
-                  <option value="default">Default Sort</option>
-                  <option value="asc">Ascending (Oldest First)</option>
-                  <option value="desc">Descending (Soonest/Newest)</option>
+                  <option value="-">Default Sort</option>
+                  <option value="ascending">Ascending (Oldest First)</option>
+                  <option value="descending">Descending (Soonest/Newest)</option>
                 </select>
               </div>
             </div>
@@ -260,12 +259,13 @@ export function RemindyApp() {
                 }
               />
             ) : state.reminders.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 animate-in slide-in-from-bottom-4 duration-500">
+              <div className={`grid gap-4 md:grid-cols-2 lg:grid-cols-3 ${!isFetching ? "animate-in slide-in-from-bottom-4 duration-500" : ""}`}>
                 {state.reminders.map((reminder) => (
                   <ReminderCard
                     key={reminder.id}
                     reminder={reminder}
                     onEdit={handleEdit}
+                    onDelete={handleDeleteClick}
                   />
                 ))}
               </div>
@@ -314,11 +314,33 @@ export function RemindyApp() {
 
       <ReminderModal
         isOpen={state.isModalOpen}
-        onClose={actions.closeModal}
+        onClose={handleCloseModal}
         onSave={handleSave}
-        initialData={state.editingReminder}
+        initialData={
+          state.editingReminder
+            ? {
+                id: state.editingReminder.id,
+                title: state.editingReminder.title,
+                message: state.editingReminder.message,
+                phone: state.editingReminder.phone_number,
+                date: state.editingReminder.scheduled_time_utc.split("T")[0],
+                time: state.editingReminder.scheduled_time_utc.split("T")[1]?.substring(0, 5) || "00:00",
+                timezone: state.editingReminder.timezone,
+              }
+            : null
+        }
         mode={state.modalMode}
         isQuickCreate={state.isQuickCreate}
+        isLoading={saveMutation.isPending}
+        error={modalError}
+      />
+
+      <DeleteReminderDialog
+        isOpen={!!deletingReminder}
+        reminder={deletingReminder}
+        isLoading={deleteMutation.isPending}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeletingReminder(null)}
       />
     </div>
   );

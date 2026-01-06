@@ -25,6 +25,8 @@ interface ReminderModalProps {
   initialData?: ReminderData | null;
   mode: "create" | "edit";
   isQuickCreate?: boolean;
+  isLoading?: boolean;
+  error?: string | null;
 }
 
 const TIMEZONES = [
@@ -66,6 +68,8 @@ export function ReminderModal({
   initialData,
   mode,
   isQuickCreate = false,
+  isLoading = false,
+  error = null,
 }: ReminderModalProps) {
   const {
     formData,
@@ -86,11 +90,17 @@ export function ReminderModal({
       newErrors.title = "Reminder title is required";
     }
 
-    // Phone validation - check if we have at least some digits after the code
-    if (!phoneNumberInput.trim()) {
+    // Message validation
+    if (!formData.message.trim()) {
+      newErrors.message = "Message is required";
+    }
+
+    // Phone validation - E.164 format (+ followed by 10-15 digits)
+    const fullPhone = formData.phone.replace(/\s/g, "");
+    if (!fullPhone.trim()) {
       newErrors.phone = "Phone number is required";
-    } else if (phoneNumberInput.length < 5) {
-      newErrors.phone = "Phone number seems too short";
+    } else if (!/^\+\d{10,15}$/.test(fullPhone)) {
+      newErrors.phone = "Invalid phone number (E.164 format required)";
     }
 
     // Date/Time validation (skip for quick create as it's auto-set)
@@ -113,10 +123,10 @@ export function ReminderModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (validate()) {
       onSave(formData);
-      onClose();
+      // Don't close the modal here - let the parent component handle it on success
     }
   };
 
@@ -153,6 +163,19 @@ export function ReminderModal({
 
               {/* Body - Reduced padding on mobile */}
               <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1">
+                {/* Error Toast */}
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3"
+                  >
+                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-700 font-medium">{error}</p>
+                  </motion.div>
+                )}
+
                 <form id="reminder-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-5" noValidate>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
@@ -265,44 +288,46 @@ export function ReminderModal({
                     </div>
                   )}
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <Globe className="w-4 h-4 text-accent" />
-                      Timezone
-                    </label>
-                    <div className="relative">
-                      <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none"
-                        value={formData.timezone}
-                        onChange={(e) =>
-                          setFormData({ ...formData, timezone: e.target.value })
-                        }
-                      >
-                        {TIMEZONES.map((tz) => (
-                          <option key={tz.tz} value={tz.tz}>
-                            {tz.label}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                        {/* ChevronDown icon usage here */}
-                        <svg 
-                          xmlns="http://www.w3.org/2000/svg" 
-                          width="16" 
-                          height="16" 
-                          viewBox="0 0 24 24" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          strokeWidth="2" 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round" 
-                          className="h-4 w-4"
+                  {!isQuickCreate && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-accent" />
+                        Timezone
+                      </label>
+                      <div className="relative">
+                        <select
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none"
+                          value={formData.timezone}
+                          onChange={(e) =>
+                            setFormData({ ...formData, timezone: e.target.value })
+                          }
                         >
-                          <path d="m6 9 6 6 6-6"/>
-                        </svg>
+                          {TIMEZONES.map((tz) => (
+                            <option key={tz.tz} value={tz.tz}>
+                              {tz.label}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                          {/* ChevronDown icon usage here */}
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-4 w-4"
+                          >
+                            <path d="m6 9 6 6 6-6"/>
+                          </svg>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </form>
               </div>
 
@@ -312,16 +337,18 @@ export function ReminderModal({
                   type="button"
                   variant="ghost"
                   onClick={onClose}
-                  className="text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                  disabled={isLoading}
+                  className="text-gray-500 hover:text-gray-700 hover:bg-gray-200/50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   form="reminder-form"
-                  className="shadow-lg shadow-primary/20"
+                  disabled={isLoading}
+                  className="shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {mode === "create" ? "Schedule Reminder" : "Save Changes"}
+                  {isLoading ? "Saving..." : (mode === "create" ? "Schedule Reminder" : "Save Changes")}
                 </Button>
               </div>
             </motion.div>

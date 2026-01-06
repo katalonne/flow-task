@@ -3,6 +3,69 @@ import { format } from "date-fns";
 import { ReminderData } from "../components/ReminderModal";
 import { countries, Country } from "../lib/countries";
 
+// List of IANA timezones
+const TIMEZONES = [
+  { tz: "Pacific/Midway", label: "Pacific/Midway (GMT-11:00)" },
+  { tz: "Pacific/Honolulu", label: "Pacific/Honolulu (GMT-10:00)" },
+  { tz: "America/Anchorage", label: "America/Anchorage (GMT-09:00)" },
+  { tz: "America/Los_Angeles", label: "America/Los_Angeles (GMT-08:00)" },
+  { tz: "America/Denver", label: "America/Denver (GMT-07:00)" },
+  { tz: "America/Chicago", label: "America/Chicago (GMT-06:00)" },
+  { tz: "America/New_York", label: "America/New_York (GMT-05:00)" },
+  { tz: "America/Caracas", label: "America/Caracas (GMT-04:00)" },
+  { tz: "America/Sao_Paulo", label: "America/Sao_Paulo (GMT-03:00)" },
+  { tz: "Atlantic/South_Georgia", label: "Atlantic/South_Georgia (GMT-02:00)" },
+  { tz: "Atlantic/Azores", label: "Atlantic/Azores (GMT-01:00)" },
+  { tz: "Europe/London", label: "Europe/London (GMT+00:00)" },
+  { tz: "Europe/Berlin", label: "Europe/Berlin (GMT+01:00)" },
+  { tz: "Africa/Cairo", label: "Africa/Cairo (GMT+02:00)" },
+  { tz: "Europe/Moscow", label: "Europe/Moscow (GMT+03:00)" },
+  { tz: "Asia/Dubai", label: "Asia/Dubai (GMT+04:00)" },
+  { tz: "Asia/Karachi", label: "Asia/Karachi (GMT+05:00)" },
+  { tz: "Asia/Kathmandu", label: "Asia/Kathmandu (GMT+05:45)" },
+  { tz: "Asia/Kolkata", label: "Asia/Kolkata (GMT+05:30)" },
+  { tz: "Asia/Almaty", label: "Asia/Almaty (GMT+06:00)" },
+  { tz: "Asia/Yangon", label: "Asia/Yangon (GMT+06:30)" },
+  { tz: "Asia/Bangkok", label: "Asia/Bangkok (GMT+07:00)" },
+  { tz: "Asia/Shanghai", label: "Asia/Shanghai (GMT+08:00)" },
+  { tz: "Asia/Tokyo", label: "Asia/Tokyo (GMT+09:00)" },
+  { tz: "Australia/Adelaide", label: "Australia/Adelaide (GMT+09:30)" },
+  { tz: "Australia/Sydney", label: "Australia/Sydney (GMT+10:00)" },
+  { tz: "Pacific/Guadalcanal", label: "Pacific/Guadalcanal (GMT+11:00)" },
+  { tz: "Pacific/Auckland", label: "Pacific/Auckland (GMT+12:00)" },
+  { tz: "Pacific/Chatham", label: "Pacific/Chatham (GMT+12:45)" },
+];
+
+// Helper function to get the closest matching timezone
+function getClosestTimezone(detectedTz: string): string {
+  // First, check if the detected timezone is in our list
+  if (TIMEZONES.some(t => t.tz === detectedTz)) {
+    return detectedTz;
+  }
+
+  // If not found, try to find a timezone with the same offset
+  try {
+    const now = new Date();
+    const detectedOffset = new Date(now.toLocaleString('en-US', { timeZone: detectedTz })).getTime() - now.getTime();
+
+    let closestTz = "Europe/London";
+    let closestDiff = Infinity;
+
+    for (const tz of TIMEZONES) {
+      const tzOffset = new Date(now.toLocaleString('en-US', { timeZone: tz.tz })).getTime() - now.getTime();
+      const diff = Math.abs(tzOffset - detectedOffset);
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closestTz = tz.tz;
+      }
+    }
+
+    return closestTz;
+  } catch (e) {
+    return "Europe/London";
+  }
+}
+
 interface FormState {
   formData: ReminderData;
   errors: Record<string, string>;
@@ -62,6 +125,8 @@ export function useReminderForm(
     } else {
       const defaultCountry = countries.find(c => c.code === "US") || countries[0];
       const now = new Date();
+      const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/London";
+      const selectedTz = getClosestTimezone(detectedTz);
 
       setState(prev => ({
         ...prev,
@@ -71,7 +136,7 @@ export function useReminderForm(
           phone: defaultCountry.dial_code,
           date: format(now, "yyyy-MM-dd"),
           time: format(now, "HH:mm"),
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/London",
+          timezone: selectedTz,
         },
         selectedCountry: defaultCountry,
         phoneNumberInput: "",
