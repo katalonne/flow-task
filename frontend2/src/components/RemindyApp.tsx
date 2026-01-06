@@ -211,7 +211,7 @@ export function RemindyApp() {
       >
         <Card padding="lg" className="min-h-[600px] flex flex-col">
           {/* Header Actions */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 sm:mb-8">
+          <div className="flex flex-col lg:flex-row justify-between items-start md:items-center gap-4 mb-6 sm:mb-8">
             <div className="w-full md:w-auto flex flex-col sm:flex-row lg:flex-col sm:items-baseline lg:items-start sm:gap-3 lg:gap-0">
               <h2 className="text-2xl sm:text-3xl font-bold text-primary shrink-0">
                 Dashboard
