@@ -6,7 +6,7 @@ export interface Reminder {
   title: string;
   message: string;
   phone_number: string;
-  scheduled_time: string; // ISO string
+  scheduled_time_utc: string; // ISO string in UTC
   timezone: string;
   status: ReminderStatus;
   time_remaining_seconds: number;

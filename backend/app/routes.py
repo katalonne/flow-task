@@ -29,7 +29,7 @@ async def create_reminder(form: ReminderCreate, session: AsyncSession = Depends(
     title=form.title,
     message=form.message,
     phone_number=form.phone_number,
-    scheduled_time=normalize_datetime(form.scheduled_time),
+    scheduled_time_utc=normalize_datetime(form.scheduled_time_utc),
     timezone=form.timezone or "UTC",
   )
   session.add(reminder)
@@ -51,7 +51,11 @@ async def list_reminders(
     stmt = stmt.where(
       (Reminder.title.ilike(term)) | (Reminder.message.ilike(term))
     )
-  stmt = stmt.order_by(Reminder.scheduled_time.desc())
+  # Sort by scheduled_time_utc based on sort parameter
+  if filters.sort == "ascending":
+    stmt = stmt.order_by(Reminder.scheduled_time_utc.asc())
+  else:  # "descending" is default
+    stmt = stmt.order_by(Reminder.scheduled_time_utc.desc())
   total_offset = (filters.page - 1) * filters.per_page
   stmt = stmt.offset(total_offset).limit(filters.per_page)
   result = (await session.execute(stmt)).scalars().all()
@@ -95,8 +99,8 @@ async def update_reminder(
   if reminder.status not in (ReminderStatus.scheduled, ReminderStatus.failed):
     raise HTTPException(status_code=400, detail="Only scheduled or failed reminders can be updated")
   update_data = payload.model_dump(exclude_none=True)
-  if scheduled := update_data.get("scheduled_time"):
-    update_data["scheduled_time"] = normalize_datetime(scheduled)
+  if scheduled := update_data.get("scheduled_time_utc"):
+    update_data["scheduled_time_utc"] = normalize_datetime(scheduled)
   for field, value in update_data.items():
     setattr(reminder, field, value)
   reminder.updated_at = datetime.utcnow()
@@ -126,14 +130,14 @@ async def delete_reminder(reminder_id: str, session: AsyncSession = Depends(get_
 @router.post("/call-me-in-10-secs", response_model=ReminderResponse)
 async def call_me_in_10_secs(phone_number: str, session: AsyncSession = Depends(get_session)) -> ReminderResponse:
     now = datetime.now(timezone.utc)
-    scheduled_time = now + timedelta(seconds=10)
+    scheduled_time_utc = now + timedelta(seconds=10)
     title = f"Random Title {randint(1000, 9999)}"
     message = f"Random Message {randint(1000, 9999)}"
     reminder = Reminder(
         title=title,
         message=message,
         phone_number=phone_number,
-        scheduled_time=scheduled_time,
+        scheduled_time_utc=scheduled_time_utc,
         timezone="UTC",
     )
     session.add(reminder)
@@ -149,10 +153,10 @@ def _map_response(reminder: Reminder) -> ReminderResponse:
     message=reminder.message,
     phone_number=reminder.phone_number,
     masked_phone_number=mask_phone_number(reminder.phone_number),
-    scheduled_time=reminder.scheduled_time,
+    scheduled_time_utc=reminder.scheduled_time_utc,
     timezone=reminder.timezone,
     status=reminder.status,
-    time_remaining_seconds=time_remaining_seconds(reminder.scheduled_time),
+    time_remaining_seconds=time_remaining_seconds(reminder.scheduled_time_utc),
     failure_reason=reminder.failure_reason,
   )
 
@@ -163,9 +167,9 @@ def _map_dashboard(reminder: Reminder) -> ReminderDashboardItem:
     title=reminder.title,
     message=reminder.message,
     timezone=reminder.timezone,
-    scheduled_time=reminder.scheduled_time,
+    scheduled_time_utc=reminder.scheduled_time_utc,
     status=reminder.status,
-    time_remaining_seconds=time_remaining_seconds(reminder.scheduled_time),
+    time_remaining_seconds=time_remaining_seconds(reminder.scheduled_time_utc),
     phone_number=reminder.phone_number,
     failure_reason=reminder.failure_reason,
   )

@@ -23,7 +23,7 @@ def register_scheduler(app: FastAPI) -> None:
     async with async_session() as session:
       stmt = select(Reminder).where(
         Reminder.status == ReminderStatus.scheduled,
-        Reminder.scheduled_time <= now,
+        Reminder.scheduled_time_utc <= now,
       )
       result = await session.execute(stmt)
       reminders = result.scalars().all()

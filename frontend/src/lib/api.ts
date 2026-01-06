@@ -40,13 +40,13 @@ export async function createReminder(data: {
 }): Promise<Reminder> {
   // Convert local datetime + timezone to UTC ISO string
   const utcDate = fromZonedTime(data.datetime, data.timezone);
-  const scheduledTime = utcDate.toISOString();
+  const scheduledTimeUtc = utcDate.toISOString();
 
   const { data: response } = await api.post<Reminder>("/reminders/", {
     title: data.title,
     message: data.message,
     phone_number: data.phone,
-    scheduled_time: scheduledTime,
+    scheduled_time_utc: scheduledTimeUtc,
     timezone: data.timezone,
   });
   return response;

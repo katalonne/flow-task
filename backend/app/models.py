@@ -18,7 +18,7 @@ class ReminderStatus(str, Enum):
 class Reminder(SQLModel, table=True):
   __tablename__ = "reminders"
   __table_args__ = (
-    Index("ix_reminders_status_scheduled_time", "status", "scheduled_time"),
+    Index("ix_reminders_status_scheduled_time", "status", "scheduled_time_utc"),
   )
 
   id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
@@ -26,7 +26,7 @@ class Reminder(SQLModel, table=True):
   message: str
   phone_number: str = Field(sa_column=Column(String(32)))
   timezone: str = Field(default="Europe/Bucharest", sa_column=Column(String(64)))
-  scheduled_time: datetime
+  scheduled_time_utc: datetime
   status: ReminderStatus = Field(default=ReminderStatus.scheduled, index=True)
   created_at: datetime = Field(default_factory=datetime.utcnow)
   updated_at: datetime = Field(default_factory=datetime.utcnow)

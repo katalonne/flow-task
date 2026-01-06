@@ -24,7 +24,7 @@ class ReminderCreate(BaseModel):
   title: constr(strip_whitespace=True, min_length=1, max_length=128)
   message: constr(strip_whitespace=True, min_length=1)
   phone_number: str
-  scheduled_time: datetime
+  scheduled_time_utc: datetime
   timezone: Optional[str] = None
 
   @validator("phone_number")
@@ -35,14 +35,14 @@ class ReminderCreate(BaseModel):
   def validate_tz(cls, value: Optional[str]) -> Optional[str]:
     return validate_timezone(value)
 
-  @validator("scheduled_time")
+  @validator("scheduled_time_utc")
   def future_time(cls, value: datetime) -> datetime:
     now = datetime.now(timezone.utc)
     # If value is naive, treat as UTC
     if value.tzinfo is None:
       value = value.replace(tzinfo=timezone.utc)
     if value <= now:
-      raise ValueError("scheduled_time must be in the future")
+      raise ValueError("scheduled_time_utc must be in the future")
     return value
 
 
@@ -50,7 +50,7 @@ class ReminderUpdate(BaseModel):
   title: Optional[constr(strip_whitespace=True, min_length=1, max_length=128)] = None
   message: Optional[constr(strip_whitespace=True, min_length=1)] = None
   phone_number: Optional[str] = None
-  scheduled_time: Optional[datetime] = None
+  scheduled_time_utc: Optional[datetime] = None
   timezone: Optional[str] = None
 
   @validator("phone_number", pre=True, always=False)
@@ -63,7 +63,7 @@ class ReminderUpdate(BaseModel):
   def validate_tz(cls, value: Optional[str]) -> Optional[str]:
     return validate_timezone(value)
 
-  @validator("scheduled_time", pre=True, always=False)
+  @validator("scheduled_time_utc", pre=True, always=False)
   def future_time(cls, value: Optional[datetime]) -> Optional[datetime]:
     if value is None:
       return None
@@ -72,7 +72,7 @@ class ReminderUpdate(BaseModel):
     if value.tzinfo is None:
       value = value.replace(tzinfo=timezone.utc)
     if value <= now:
-      raise ValueError("scheduled_time must be in the future")
+      raise ValueError("scheduled_time_utc must be in the future")
     return value
 
 
@@ -82,7 +82,7 @@ class ReminderResponse(BaseModel):
   message: str
   phone_number: str
   masked_phone_number: str
-  scheduled_time: datetime
+  scheduled_time_utc: datetime
   timezone: str
   status: ReminderStatus
   time_remaining_seconds: float
@@ -95,6 +95,7 @@ class ReminderResponse(BaseModel):
 class ReminderFilter(BaseModel):
   status: Literal["all", "scheduled", "completed", "failed"] = Query("all")
   search: Optional[str] = Query(None, description="Search term for title or message")
+  sort: Literal["ascending", "descending"] = Query("descending", description="Sort by scheduled_time_utc in ascending or descending order")
   page: int = Query(1, ge=1)
   per_page: int = Query(25, ge=1, le=100)
 
@@ -104,7 +105,7 @@ class ReminderDashboardItem(BaseModel):
   title: str
   message: str
   timezone: str
-  scheduled_time: datetime
+  scheduled_time_utc: datetime
   status: ReminderStatus
   time_remaining_seconds: float
   phone_number: str

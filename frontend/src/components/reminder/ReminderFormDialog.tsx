@@ -64,7 +64,7 @@ function getInitialFormState(initial: any, quickCreate: boolean): FormState {
   }
 
   // Determine datetime
-  let datetime = initial?.datetime || (initial?.scheduled_time ? initial.scheduled_time.slice(0, 16) : "");
+  let datetime = initial?.datetime || (initial?.scheduled_time_utc ? initial.scheduled_time_utc.slice(0, 16) : "");
   if (quickCreate && !datetime) {
     const now = new Date();
     const oneMinuteLater = new Date(now.getTime() + 60000);

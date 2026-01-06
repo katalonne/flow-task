@@ -13,7 +13,7 @@ interface ReminderCardProps {
 }
 
 export function ReminderCard({ reminder, onEdit, onDelete }: ReminderCardProps) {
-  const scheduledDate = new Date(reminder.scheduled_time);
+  const scheduledDate = new Date(reminder.scheduled_time_utc);
   const isScheduled = reminder.status === "scheduled";
 
   return (
@@ -53,7 +53,7 @@ export function ReminderCard({ reminder, onEdit, onDelete }: ReminderCardProps) 
         </div>
         {isScheduled && (
           <CountdownTimer
-            scheduledTime={reminder.scheduled_time}
+            scheduledTime={reminder.scheduled_time_utc}
             initialSecondsRemaining={reminder.time_remaining_seconds}
           />
         )}
