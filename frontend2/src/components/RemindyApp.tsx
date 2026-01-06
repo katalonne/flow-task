@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { add, format } from "date-fns";
+import { format, addSeconds } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 import { Hero } from "./Hero";
 import { ReminderModal, ReminderData } from "./ReminderModal";
 import { ReminderCard } from "./ReminderCard";
@@ -161,13 +162,23 @@ export function RemindyApp() {
   });
 
   const handleSave = (data: ReminderData) => {
-    // For quick create, adjust the date/time to be 60 seconds from now
+    // For quick create, adjust the date/time to be 60 seconds from now in London timezone
     if (state.isQuickCreate) {
-      const now = add(new Date(), { seconds: 60 });
+      const now = new Date();
+      const londonTime = toZonedTime(now, "Europe/London"); // Get current time in London timezone
+      const londonTimePlus60 = addSeconds(londonTime, 60); // Add 60 seconds in London time
+
+      console.log("Quick Create Submit Debug:");
+      console.log("Current UTC time:", now.toISOString());
+      console.log("Current London time:", londonTime.toISOString());
+      console.log("London time + 60s:", londonTimePlus60.toISOString());
+      console.log("Formatted date:", format(londonTimePlus60, "yyyy-MM-dd"));
+      console.log("Formatted time:", format(londonTimePlus60, "HH:mm"));
+
       data = {
         ...data,
-        date: format(now, "yyyy-MM-dd"),
-        time: format(now, "HH:mm"),
+        date: format(londonTimePlus60, "yyyy-MM-dd"),
+        time: format(londonTimePlus60, "HH:mm"),
       };
     }
     saveMutation.mutate(data);
