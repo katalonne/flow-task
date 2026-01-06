@@ -11,6 +11,8 @@ export interface Reminder {
   status: ReminderStatus;
   time_remaining_seconds: number;
   failure_reason: string | null;
+  created_at: string; // ISO string in UTC
+  updated_at: string; // ISO string in UTC
 }
 
 // API Response types

@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { add, format } from "date-fns";
 import { Hero } from "./Hero";
 import { ReminderModal, ReminderData } from "./ReminderModal";
 import { ReminderCard } from "./ReminderCard";
@@ -160,6 +161,15 @@ export function RemindyApp() {
   });
 
   const handleSave = (data: ReminderData) => {
+    // For quick create, adjust the date/time to be 60 seconds from now
+    if (state.isQuickCreate) {
+      const now = add(new Date(), { seconds: 60 });
+      data = {
+        ...data,
+        date: format(now, "yyyy-MM-dd"),
+        time: format(now, "HH:mm"),
+      };
+    }
     saveMutation.mutate(data);
   };
 
@@ -323,9 +333,10 @@ export function RemindyApp() {
                 title: state.editingReminder.title,
                 message: state.editingReminder.message,
                 phone: state.editingReminder.phone_number,
-                date: state.editingReminder.scheduled_time_utc.split("T")[0],
-                time: state.editingReminder.scheduled_time_utc.split("T")[1]?.substring(0, 5) || "00:00",
+                date: "", // Will be set by useReminderForm from scheduled_time_utc
+                time: "", // Will be set by useReminderForm from scheduled_time_utc
                 timezone: state.editingReminder.timezone,
+                scheduled_time_utc: state.editingReminder.scheduled_time_utc, // Pass the UTC time for conversion
               }
             : null
         }

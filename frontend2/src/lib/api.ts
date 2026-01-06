@@ -1,5 +1,5 @@
 import axios from "axios";
-import { fromZonedTime } from "date-fns-tz";
+import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { Reminder, RemindersResponse, ReminderFormData } from "../types/reminder";
 
 const api = axios.create({
@@ -8,6 +8,50 @@ const api = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+/**
+ * Convert UTC datetime to the specified timezone
+ * @param utcDateString ISO string in UTC (may or may not have Z suffix)
+ * @param timezone IANA timezone string
+ * @returns Date object in the specified timezone
+ */
+export function convertUTCToTimezone(utcDateString: string, timezone: string): Date {
+  try {
+    // Ensure the string is treated as UTC by adding Z if not present
+    let utcString = utcDateString;
+    if (!utcString.endsWith('Z') && !utcString.includes('+') && !utcString.includes('-', 10)) {
+      utcString = utcString + 'Z';
+    }
+    const utcDate = new Date(utcString);
+    const zonedDate = toZonedTime(utcDate, timezone);
+    return zonedDate;
+  } catch (error) {
+    console.error(`Error converting UTC to timezone ${timezone}:`, error);
+    return new Date(utcDateString);
+  }
+}
+
+/**
+ * Convert UTC datetime to browser's local timezone
+ * @param utcDateString ISO string in UTC (may or may not have Z suffix)
+ * @returns Date object in browser's local timezone
+ */
+export function convertUTCToBrowserTimezone(utcDateString: string): Date {
+  try {
+    // Ensure the string is treated as UTC by adding Z if not present
+    let utcString = utcDateString;
+    if (!utcString.endsWith('Z') && !utcString.includes('+') && !utcString.includes('-', 10)) {
+      utcString = utcString + 'Z';
+    }
+    const utcDate = new Date(utcString);
+    // JavaScript's Date object automatically converts to browser's local timezone
+    // when using format/display methods
+    return utcDate;
+  } catch (error) {
+    console.error(`Error converting UTC to browser timezone:`, error);
+    return new Date(utcDateString);
+  }
+}
 
 export async function fetchReminders(
   status: "all" | "scheduled" | "completed" | "failed" = "all",

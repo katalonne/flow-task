@@ -87,7 +87,29 @@ export function useDashboardState(): [DashboardState, DashboardActions] {
     
     openCreateModal: () => setState(s => ({ ...s, isModalOpen: true, modalMode: "create", editingReminder: null, isQuickCreate: false })),
     openEditModal: (reminder) => setState(s => ({ ...s, isModalOpen: true, modalMode: "edit", editingReminder: reminder, isQuickCreate: false })),
-    openQuickCreateModal: () => setState(s => ({ ...s, isModalOpen: true, modalMode: "create", isQuickCreate: true })),
+    openQuickCreateModal: () => {
+      // Use Europe/London (UTC+0) as timezone for quick create
+      // The actual time will be calculated when user submits the form
+      const quickCreateReminder = {
+        id: "temp",
+        title: "",
+        message: "This is a quick reminder call.",
+        phone_number: "",
+        scheduled_time_utc: new Date().toISOString(), // Will be updated on submit
+        timezone: "Europe/London", // UTC equivalent
+        status: "scheduled" as const,
+        time_remaining_seconds: 60,
+        failure_reason: null,
+      };
+
+      setState(s => ({
+        ...s,
+        isModalOpen: true,
+        modalMode: "create",
+        editingReminder: quickCreateReminder as Reminder,
+        isQuickCreate: true
+      }));
+    },
     closeModal: () => setState(s => ({ ...s, isModalOpen: false })),
     
     setActiveTab: (activeTab) => setState(s => ({ ...s, activeTab, page: 1 })),

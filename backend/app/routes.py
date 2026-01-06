@@ -30,7 +30,7 @@ async def create_reminder(form: ReminderCreate, session: AsyncSession = Depends(
     message=form.message,
     phone_number=form.phone_number,
     scheduled_time_utc=normalize_datetime(form.scheduled_time_utc),
-    timezone=form.timezone or "UTC",
+    timezone=form.timezone or "Europe/London",
   )
   session.add(reminder)
   await session.commit()
@@ -158,6 +158,8 @@ def _map_response(reminder: Reminder) -> ReminderResponse:
     status=reminder.status,
     time_remaining_seconds=time_remaining_seconds(reminder.scheduled_time_utc),
     failure_reason=reminder.failure_reason,
+    created_at=reminder.created_at,
+    updated_at=reminder.updated_at,
   )
 
 
@@ -172,4 +174,6 @@ def _map_dashboard(reminder: Reminder) -> ReminderDashboardItem:
     time_remaining_seconds=time_remaining_seconds(reminder.scheduled_time_utc),
     phone_number=reminder.phone_number,
     failure_reason=reminder.failure_reason,
+    created_at=reminder.created_at,
+    updated_at=reminder.updated_at,
   )

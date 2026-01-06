@@ -63,7 +63,7 @@ class ReminderUpdate(BaseModel):
   def validate_tz(cls, value: Optional[str]) -> Optional[str]:
     return validate_timezone(value)
 
-  @validator("scheduled_time_utc", pre=True, always=False)
+  @validator("scheduled_time_utc", pre=False, always=False)
   def future_time(cls, value: Optional[datetime]) -> Optional[datetime]:
     if value is None:
       return None
@@ -87,6 +87,8 @@ class ReminderResponse(BaseModel):
   status: ReminderStatus
   time_remaining_seconds: float
   failure_reason: Optional[str]
+  created_at: datetime
+  updated_at: datetime
 
   class Config:
     orm_mode = True
@@ -110,6 +112,8 @@ class ReminderDashboardItem(BaseModel):
   time_remaining_seconds: float
   phone_number: str
   failure_reason: Optional[str]
+  created_at: datetime
+  updated_at: datetime
 
   class Config:
     orm_mode = True

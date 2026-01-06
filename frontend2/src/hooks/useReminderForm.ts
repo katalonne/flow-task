@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 import { ReminderData } from "../components/ReminderModal";
 import { countries, Country } from "../lib/countries";
 
@@ -98,26 +99,57 @@ export function useReminderForm(
 
     if (initialData) {
       let foundCountry = countries.find(c => c.code === "US") || countries[0];
-      let number = initialData.phone;
+
+      // Handle both ReminderData and Reminder types
+      const phone = (initialData as any).phone || (initialData as any).phone_number || "";
+      let number = phone;
 
       const sortedCountries = [...countries].sort(
         (a, b) => b.dial_code.length - a.dial_code.length
       );
 
       for (const country of sortedCountries) {
-        if (initialData.phone.startsWith(country.dial_code)) {
+        if (phone.startsWith(country.dial_code)) {
           foundCountry = country;
-          number = initialData.phone.substring(country.dial_code.length);
+          number = phone.substring(country.dial_code.length);
           if (number.startsWith(" ")) number = number.substring(1);
           break;
+        }
+      }
+
+      // Handle both ReminderData and Reminder types for date/time
+      let date = (initialData as any).date || "";
+      let time = (initialData as any).time || "";
+      const timezone = (initialData as any).timezone || "Europe/London";
+
+      if (!date && (initialData as any).scheduled_time_utc) {
+        // Convert UTC time to the reminder's timezone for editing
+        let utcString = (initialData as any).scheduled_time_utc;
+        // Ensure the string is treated as UTC by adding Z if not present
+        if (!utcString.endsWith('Z') && !utcString.includes('+') && !utcString.includes('-', 10)) {
+          utcString = utcString + 'Z';
+        }
+        const utcTime = new Date(utcString);
+        try {
+          const zonedTime = toZonedTime(utcTime, timezone);
+          date = format(zonedTime, "yyyy-MM-dd");
+          time = format(zonedTime, "HH:mm");
+        } catch (error) {
+          // Fallback to UTC if timezone conversion fails
+          date = format(utcTime, "yyyy-MM-dd");
+          time = format(utcTime, "HH:mm");
         }
       }
 
       setState(prev => ({
         ...prev,
         formData: {
-          ...initialData,
-          timezone: initialData.timezone || "Europe/London",
+          title: initialData.title,
+          message: initialData.message,
+          phone,
+          date,
+          time,
+          timezone,
         },
         selectedCountry: foundCountry,
         phoneNumberInput: number,

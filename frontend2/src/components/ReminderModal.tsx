@@ -3,7 +3,8 @@ import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { X, Clock, Phone, FileText, Calendar, Globe, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { parseISO, isBefore, isValid, startOfMinute } from "date-fns";
+import { parseISO, isBefore, isValid } from "date-fns";
+import { fromZonedTime } from "date-fns-tz";
 import { cn } from "../lib/utils";
 import { CountrySelect } from "./CountrySelect";
 import { useReminderForm } from "../hooks/useReminderForm";
@@ -16,6 +17,7 @@ export type ReminderData = {
   date: string;
   time: string;
   timezone: string;
+  scheduled_time_utc?: string; // Optional, used for editing to pass UTC time for conversion
 };
 
 interface ReminderModalProps {
@@ -107,13 +109,22 @@ export function ReminderModal({
     if (!isQuickCreate) {
       const dateTimeStr = `${formData.date}T${formData.time}`;
       const selectedDate = parseISO(dateTimeStr);
-      const now = startOfMinute(new Date());
 
       if (!isValid(selectedDate)) {
         newErrors.date = "Invalid date or time";
-      } else if (isBefore(selectedDate, now)) {
-        newErrors.date = "Reminder time must be in the future";
-        newErrors.time = "Reminder time must be in the future";
+      } else {
+        // Convert the selected time (in the chosen timezone) to UTC for comparison
+        try {
+          const utcDate = fromZonedTime(selectedDate, formData.timezone);
+          const now = new Date();
+
+          if (isBefore(utcDate, now)) {
+            newErrors.date = "Reminder time must be in the future";
+            newErrors.time = "Reminder time must be in the future";
+          }
+        } catch (error) {
+          newErrors.date = "Invalid timezone";
+        }
       }
     }
 
@@ -199,15 +210,27 @@ export function ReminderModal({
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Message (Optional)</label>
+                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-accent" />
+                      Message
+                    </label>
                     <textarea
-                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-y"
+                      className={cn(
+                        "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-y",
+                        errors.message && "border-red-500 focus-visible:ring-red-500"
+                      )}
                       placeholder="What should the voice say?"
                       value={formData.message}
-                      onChange={(e) =>
-                        setFormData({ ...formData, message: e.target.value })
-                      }
+                      onChange={(e) => {
+                        setFormData({ ...formData, message: e.target.value });
+                        if (errors.message) setErrors({...errors, message: ""});
+                      }}
                     />
+                    {errors.message && (
+                      <p className="text-xs text-red-500 font-medium flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> {errors.message}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">

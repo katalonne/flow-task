@@ -1,10 +1,10 @@
-import React from "react";
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
 import { Clock, Phone, Edit2, AlertCircle, CheckCircle, Timer, Trash2 } from "lucide-react";
-import { parseISO, format } from "date-fns";
+import { format } from "date-fns";
 import { Reminder } from "../types/reminder";
 import { useCountdown } from "../hooks/useCountdown";
+import { convertUTCToBrowserTimezone } from "../lib/api";
 
 interface ReminderCardProps {
   reminder: Reminder;
@@ -20,7 +20,8 @@ const STATUS_CONFIG = {
 
 export function ReminderCard({ reminder, onEdit, onDelete }: ReminderCardProps) {
   const isScheduled = reminder.status === "scheduled";
-  const scheduledDate = parseISO(reminder.scheduled_time_utc);
+  // Convert UTC time to browser's local timezone for display
+  const scheduledDate = convertUTCToBrowserTimezone(reminder.scheduled_time_utc);
   const dateStr = format(scheduledDate, "yyyy-MM-dd");
   const timeStr = format(scheduledDate, "HH:mm");
   const { timeLeft, isOverdue } = useCountdown(dateStr, timeStr, isScheduled);
