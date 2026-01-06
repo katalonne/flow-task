@@ -106,7 +106,7 @@ The services use environment variables from a `.env` file in the **project root*
 If you're running the services locally without Docker:
 
 - **Backend**: Create `backend/.env` with backend variables
-- **Frontend**: Create `frontend2/.env.local` with frontend variables
+- **Frontend**: Create `frontend/.env.local` with frontend variables
 
 The `.env` file in the project root is **only for Docker** and will be ignored by local development.
 
@@ -150,7 +150,7 @@ docker-compose up --build
 
 ## Development Workflow
 
-1. Make changes to code in `backend/` or `frontend2/`
+1. Make changes to code in `backend/` or `frontend/`
 2. Changes are automatically detected and reloaded
 3. Check logs with `docker-compose logs -f`
 4. Test in browser at http://localhost:3000

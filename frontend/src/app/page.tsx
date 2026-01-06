@@ -1,8 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { Dashboard } from "../components/dashboard/Dashboard";
-import { Hero } from "../components/landing/Hero";
+import { RemindyApp } from "../components/RemindyApp";
 
 export default function Home() {
   const dashboardRef = useRef<HTMLDivElement>(null);
@@ -13,10 +12,10 @@ export default function Home() {
 
   return (
     <main>
-      <Hero onGetStarted={scrollToDashboard} />
       <div ref={dashboardRef}>
-        <Dashboard />
+        <RemindyApp />
       </div>
     </main>
   );
 }
+
