@@ -1,0 +1,25 @@
+[project]
+name = "reminder-backend"
+version = "0.1.0"
+description = "FastAPI reminder service with automated calls powered by Vapi"
+requires-python = ">=3.11"
+
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.23",
+    "sqlmodel>=0.0.8",
+    "phonenumbers>=8.13",
+    "httpx>=0.26",
+    "python-dotenv>=1.0",
+    "apscheduler>=3.9",
+    "tenacity>=8.2",
+    "pydantic-settings>=2.0",
+    "vapi_server_sdk>=1.9.0",
+    "aiosqlite>=0.19",
+]
+
+[tool.poetry]
+name = "reminder-backend"
+version = "0.1.0"
+description = "Reminder scheduler and caller"
+authors = ["Roo <roo@example.com>"]

@@ -1,0 +1,15 @@
+Metadata-Version: 2.4
+Name: reminder-backend
+Version: 0.1.0
+Summary: FastAPI reminder service with automated calls powered by Vapi
+Requires-Python: >=3.11
+Requires-Dist: fastapi>=0.110
+Requires-Dist: uvicorn[standard]>=0.23
+Requires-Dist: sqlmodel>=0.0.8
+Requires-Dist: phonenumbers>=8.13
+Requires-Dist: httpx>=0.26
+Requires-Dist: python-dotenv>=1.0
+Requires-Dist: apscheduler>=3.9
+Requires-Dist: tenacity>=8.2
+Requires-Dist: pydantic-settings>=2.0
+Requires-Dist: vapi_server_sdk>=1.9.0

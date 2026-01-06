@@ -1,0 +1,10 @@
+fastapi>=0.110
+uvicorn[standard]>=0.23
+sqlmodel>=0.0.8
+phonenumbers>=8.13
+httpx>=0.26
+python-dotenv>=1.0
+apscheduler>=3.9
+tenacity>=8.2
+pydantic-settings>=2.0
+vapi_server_sdk>=1.9.0
