@@ -7,7 +7,7 @@
 - node >=20
 - npm 10.9.2
 
-# How to run
+# How to run (with docker)
 1) Create `.env` file from `.env.example` in the root directory. `cp .env.example .env`
 2) Get your `VAPI_API_KEY`, `PHONE_NUMBER_ID` and put them in `.env` (root directory).
 3) Run `docker compose up` from the root directory.
