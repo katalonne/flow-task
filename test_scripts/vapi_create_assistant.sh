@@ -1,4 +1,4 @@
-VAPI_API_KEY="bf687aa6-a209-4e64-a532-93cafdc3cd65"
+VAPI_API_KEY="key_here"
 
 curl -X POST "https://api.vapi.ai/assistant" \
   -H "Authorization: Bearer $VAPI_API_KEY" \
