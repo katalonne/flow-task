@@ -253,6 +253,7 @@ export function RemindyApp() {
               <div className="flex items-center gap-2 px-3 py-2 bg-white border border-input rounded-lg shadow-sm hover:border-accent transition-colors w-full md:w-auto">
                 <ArrowUpDown className="w-4 h-4 text-muted-foreground shrink-0" />
                 <select
+                  data-testid="sort-button"
                   className="bg-transparent border-none text-sm font-medium focus:ring-0 cursor-pointer text-foreground outline-none w-full"
                   value={state.sortOption}
                   onChange={(e) =>

@@ -30,7 +30,9 @@ export function ReminderCard({ reminder, onEdit, onDelete }: ReminderCardProps) 
   const StatusIcon = status.icon;
 
   return (
-    <div className="group relative bg-white rounded-xl border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 p-5 overflow-hidden flex flex-col justify-between h-full">
+    <div
+      data-testid="reminder-card"
+      className="group relative bg-white rounded-xl border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 p-5 overflow-hidden flex flex-col justify-between h-full">
       {/* Decorative side bar */}
       <div 
         className={`absolute left-0 top-0 bottom-0 w-1 ${
@@ -89,6 +91,7 @@ export function ReminderCard({ reminder, onEdit, onDelete }: ReminderCardProps) 
         <div className="ml-auto sm:ml-2 shrink-0 flex gap-1">
           {isScheduled && (
             <Button
+              data-testid="edit-button"
               variant="ghost"
               size="sm"
               onClick={() => onEdit(reminder)}
@@ -99,6 +102,7 @@ export function ReminderCard({ reminder, onEdit, onDelete }: ReminderCardProps) 
             </Button>
           )}
           <Button
+            data-testid="delete-button"
             variant="ghost"
             size="sm"
             onClick={() => onDelete(reminder)}

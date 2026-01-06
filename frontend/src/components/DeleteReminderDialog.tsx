@@ -76,6 +76,7 @@ export function DeleteReminderDialog({
                 Cancel
               </Button>
               <button
+                data-testid="confirm-delete-button"
                 onClick={onConfirm}
                 disabled={isLoading}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
